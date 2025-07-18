@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Resume</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: The SPA uses a fixed sidebar navigation on larger screens (which collapses to a top bar on mobile) to allow users to instantly access key sections: Overview, Timeline, Skills, and Projects. This non-linear structure is more user-friendly for recruiters who may want to jump directly to a specific area like "Skills". The "Overview" acts as a landing page with a summary and dynamic charts highlighting major achievements. The "Timeline" section interactively displays work history, letting users expand each role for details. This design prioritizes scannability and impact over a simple chronological scroll, making key qualifications easier to find and digest. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Quantitative achievements (e.g., performance improvements). Goal: Compare & Show Impact. Viz/Method: Bar Charts. Interaction: Hover for details. Justification: Charts provide a more immediate and powerful representation of success metrics than text alone. Library: Chart.js/Canvas.
+        - Report Info: Chronological work history. Goal: Show Change/Progression. Viz/Method: Vertical Timeline. Interaction: Click to expand/collapse role details. Justification: A timeline is more visually engaging and easier to follow than a standard list, clearly showing career growth. Library: HTML/CSS/JS.
+        - Report Info: Technical Skills. Goal: Organize & Inform. Viz/Method: Grouped lists with category headings. Interaction: None, simple display. Justification: Clear categorization allows technical reviewers to quickly assess capabilities in different areas (languages, frameworks, etc.). Library: HTML/CSS.
+        - Report Info: Projects/Education/Certs. Goal: Inform & Showcase. Viz/Method: Styled cards and links. Interaction: Links open in a new tab. Justification: Cards neatly package project information, and styled links provide clear calls-to-action. Library: HTML/CSS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f7f4;
+            color: #44403c;
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+        }
+        .nav-link.active {
+            background-color: #a3bfb8;
+            color: #ffffff;
+            font-weight: 700;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 250px;
+            max-height: 300px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 300px;
+                max-height: 350px;
+            }
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -30px;
+            top: 5px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #a3bfb8;
+            border: 3px solid #f8f7f4;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="lg:flex min-h-screen">
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="bg-[#e4e0d8] text-stone-800 w-full lg:w-64 lg:min-h-screen p-4 lg:p-6 fixed lg:relative bottom-0 lg:bottom-auto z-50 lg:z-auto">
+            <div class="flex lg:flex-col justify-around lg:justify-start lg:space-y-4">
+                <div class="text-center hidden lg:block mb-8">
+                    <h1 class="text-2xl font-bold text-stone-900">Portfolio</h1>
+                    <p class="text-sm text-stone-600">Senior Software Engineer</p>
+                </div>
+                <button data-target="overview" class="nav-link text-center lg:text-left p-3 rounded-lg flex items-center justify-center lg:justify-start space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
+                    <span class="hidden lg:inline">Overview</span>
+                </button>
+                <button data-target="timeline" class="nav-link text-center lg:text-left p-3 rounded-lg flex items-center justify-center lg:justify-start space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" /></svg>
+                    <span class="hidden lg:inline">Timeline</span>
+                </button>
+                 <button data-target="skills" class="nav-link text-center lg:text-left p-3 rounded-lg flex items-center justify-center lg:justify-start space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01-.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
+                    <span class="hidden lg:inline">Skills</span>
+                </button>
+                <button data-target="projects" class="nav-link text-center lg:text-left p-3 rounded-lg flex items-center justify-center lg:justify-start space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>
+                    <span class="hidden lg:inline">Projects</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 lg:p-10 pb-24 lg:pb-10">
+            <!-- Overview Section -->
+            <section id="overview" class="content-section">
+                <header class="mb-12">
+                    <h2 class="text-4xl font-bold text-stone-900 mb-2">Senior Software Engineer</h2>
+                    <p class="text-xl text-stone-600">Specializing in Backend Development, Databases, and AI</p>
+                </header>
+                
+                <div class="bg-white/50 p-8 rounded-xl shadow-sm mb-12 border border-stone-200">
+                    <h3 class="text-2xl font-bold mb-4">Summary</h3>
+                    <p class="text-lg leading-relaxed text-stone-700">
+                        I am a Senior Software Engineer with a strong interest in backend development, databases, and AI. I have extensive experience in architecting scalable and performant systems across the full stack. My track record includes proven success at Morgan Stanley, where I significantly enhanced ETL and API performance, delivering substantial improvements in efficiency and data accuracy.
+                    </p>
+                </div>
+
+                <div>
+                    <h3 class="text-2xl font-bold mb-6 text-center">Key Achievement Highlights</h3>
+                     <p class="text-md text-stone-600 mb-10 text-center max-w-3xl mx-auto">This section provides a visual summary of the key performance metrics and improvements from my professional experience. The charts below display the tangible impact of my work on system efficiency, data processing, and application performance, translating complex achievements into clear, measurable outcomes.
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
+                            <h4 class="font-bold text-center mb-4">ETL Processing Time Reduction</h4>
+                            <div class="chart-container">
+                                <canvas id="etlChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
+                            <h4 class="font-bold text-center mb-4">API Performance Boost</h4>
+                            <div class="chart-container">
+                                <canvas id="apiChart"></canvas>
+                            </div>
+                        </div>
+                         <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
+                            <h4 class="font-bold text-center mb-4">Data Processing Time Improvement</h4>
+                             <div class="chart-container">
+                                <canvas id="dataReconChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
+                            <h4 class="font-bold text-center mb-4">UI Load Time Optimization</h4>
+                            <div class="chart-container">
+                                <canvas id="uiLoadChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Timeline Section -->
+            <section id="timeline" class="content-section">
+                 <header class="mb-12">
+                    <h2 class="text-4xl font-bold text-stone-900 mb-2">Professional Timeline</h2>
+                    <p class="text-xl text-stone-600">A chronological overview of my career progression and key responsibilities.</p>
+                </header>
+                <div id="experience-timeline" class="relative border-l-2 border-[#a3bfb8] pl-8">
+                </div>
+            </section>
+
+            <!-- Skills Section -->
+            <section id="skills" class="content-section">
+                <header class="mb-12">
+                    <h2 class="text-4xl font-bold text-stone-900 mb-2">Technical Skills</h2>
+                     <p class="text-xl text-stone-600">A breakdown of my technical expertise across various domains.</p>
+                </header>
+                <div id="skills-container" class="space-y-8"></div>
+            </section>
+
+            <!-- Projects & Education Section -->
+            <section id="projects" class="content-section">
+                <header class="mb-12">
+                    <h2 class="text-4xl font-bold text-stone-900 mb-2">Projects & Credentials</h2>
+                    <p class="text-xl text-stone-600">A showcase of key projects, education, and professional certifications.</p>
+                </header>
+                
+                <div id="projects-container" class="mb-12">
+                     <h3 class="text-2xl font-bold mb-6 border-b-2 border-[#a3bfb8] pb-2">Featured Project</h3>
+                </div>
+
+                <div id="education-container" class="mb-12">
+                     <h3 class="text-2xl font-bold mb-6 border-b-2 border-[#a3bfb8] pb-2">Education</h3>
+                </div>
+
+                <div id="certifications-container">
+                     <h3 class="text-2xl font-bold mb-6 border-b-2 border-[#a3bfb8] pb-2">Certifications</h3>
+                     <div class="flex flex-wrap gap-4"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const resumeData = {
+            experience: [
+                {
+                    role: 'Senior Associate',
+                    company: 'Morgan Stanley',
+                    location: 'Mumbai, MH, India',
+                    date: '[Start Date] - [End Date]',
+                    points: [
+                        '<strong>AI Equity Research Analyst Project:</strong>',
+                        'Developed an AI-powered Equity Research Analyst system utilizing Snowflake Cortex Analyst, LLM, RAGs, Agentic workflow, Chain of Thoughts, and Observability.',
+                        'Created a comprehensive UI and Backend, incorporating advanced charting and grid support.',
+                        'Achieved a high accuracy of 93.2% on over 200 questions, significantly improving research capabilities.'
+                    ]
+                },
+                {
+                    role: 'Senior Software Engineer',
+                    company: 'Morgan Stanley (Accolite)',
+                    location: 'Mumbai, MH, India',
+                    date: '08/2023 - Present',
+                    points: [
+                        'Revamped the backend of a screener application to improve performance and efficiency by implementing in-memory caching (HSQL), asynchronous computing, and distributed system principles. These enhancements reduced ETL processing time from 4 hours to 20 minutes, decreased storage from 1,000GB to 15GB through caching and on-the-fly calculations, and boosted performance by 85%.',
+                        'Implemented an automated data reconciliation process, scheduled via Autosys to run twice daily, utilizing custom scripts to reduce data processing time by 99.3% (from 1 day to 10 minutes), eliminating manual intervention and achieving 99.9% data accuracy.',
+                        'Modernized a critical legacy application by implementing an event-driven architecture, replacing direct data replication. This resulted in the elimination of 100% database dependency, improved application resilience, and enabled cloud scalability.',
+                        'Optimized a core financial data API by analysing snowflake query plans and restructuring SQL, achieving a 62% performance improvement (8s to 3s response time) under 1,000+ concurrent requests.',
+                        'Managed the development and delivery of 4+ APIs within 3 months through effective collaboration with vendors and business stakeholders, including regular weekly meetings for requirement gathering.'
+                    ]
+                },
+                {
+                    role: 'Software Engineer',
+                    company: 'Morgan Stanley (Accolite)',
+                    location: 'Mumbai, MH, India',
+                    date: '08/2022 - 05/2023',
+                    points: [
+                        'Optimized Angular UI performance by implementing AgGrid server-side pagination and virtualization, reducing initial load time by 91% (from 8s to 700ms), enhancing user experience for 40+ pages and improving API efficiency by 97.5%.',
+                        'Enhanced app stability by 70% using NgRx and RxJS for efficient state management and inter-component communication.',
+                        'Engineered and deployed 7+ RESTful APIs using Spring Boot 3, covering the full API development lifecycle.',
+                        'Optimized an ETL job fetching closing FX rates by refining logic, cutting execution time from 15 minutes to 1 minute (93% faster).',
+                        'Deployed 4+ scalable microservices via Docker/Podman, Configured load balancers to improve traffic and fault tolerance.',
+                        'Automated CI/CD pipelines with Jenkins (build, test, deploy) and integrated SonarQube, ensuring 85%+ test coverage.'
+                    ]
+                },
+                 {
+                    role: 'Software Engineer, Intern',
+                    company: 'Bounteous x Accolite',
+                    location: 'Mumbai, MH, India',
+                    date: '01/2022 - 05/2022',
+                    points: [
+                        'Led a 10-member frontend team in developing iTracker, an interview scheduling platform.',
+                        'Owned calendar and booking features that could eliminate recruiters 8+ hours/week in manual scheduling.'
+                    ]
+                },
+                {
+                    role: 'Software Engineer, Intern',
+                    company: 'Canspirit Artificial Intelligence',
+                    location: 'Pune, MH, India',
+                    date: '03/2021 - 06/2021',
+                    points: [
+                        'Built end-to-end AI-powered API for structured PDF data extraction for healthcare clients eliminating manual data entry by 100%.',
+                        'Cut document processing time by 97% (3 mins → 5 secs) by deploying a fine-tuned BERT model.'
+                    ]
+                },
+            ],
+            skills: {
+                'Languages & Databases': ['Java', 'Python', 'Typescript', 'Snowflake', 'MongoDB', 'HyperSQL'],
+                'Frameworks & Tools': ['Spring Boot', 'Angular', 'Node', 'CI/CD', 'Docker', 'Podman', 'Jenkins'],
+                'Concepts & Paradigms': ['System Design', 'Design Patterns', 'OOP', 'Event-Driven Architecture'],
+                'AI & Machine Learning': ['Deep Learning', 'Machine Learning', 'LLM', 'RAGs', 'Agentic Workflow']
+            },
+            projects: [
+                {
+                    name: 'Deck Inspector',
+                    description: 'Developed a reporting app to streamline inspection report generation. Led a 3 member Angular team to build the frontend from scratch, improving user experience and enabling seamless navigation between projects and reports. Contributed to redesigning the backend, reducing HD report generation time from 25 minutes to real-time using AWS S3 and precomputed storage. Implemented event-driven architecture and checksum validation to update only modified reports, increasing efficiency and cutting costs.',
+                    tags: ['Angular', 'Node.js', 'AWS S3', 'RxJS', 'NgRx', 'MongoDB']
+                }
+            ],
+            education: {
+                degree: 'B.Tech in Computer Science',
+                institution: 'MIT Pune',
+                location: 'Pune, MH, India',
+                date: '06/2018 - 06/2022',
+                gpa: '9.42'
+            },
+            certifications: [
+                 { name: 'Deep Learning Specialization', url: 'https://www.coursera.org/account/accomplishments/specialization/certificate/GHCYX8VN6LA9' },
+                 { name: 'Machine Learning', url: 'https://www.coursera.org/account/accomplishments/certificate/LLB2JYZZUF59' },
+                 { name: 'Data Structures & Algorithms', url: 'https://www.udemy.com/certificate/UC-c1d1aa48-a1b2-48ca-9653-0347678ba0c6/' }
+            ]
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            const navigateTo = (targetId) => {
+                contentSections.forEach(section => {
+                    section.classList.remove('active');
+                    if (section.id === targetId) {
+                        section.classList.add('active');
+                    }
+                });
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.dataset.target === targetId) {
+                        link.classList.add('active');
+                    }
+                });
+            };
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    navigateTo(link.dataset.target);
+                });
+            });
+            
+            navigateTo('overview');
+            renderCharts();
+            renderTimeline();
+            renderSkills();
+            renderProjects();
+        });
+
+        function renderTimeline() {
+            const container = document.getElementById('experience-timeline');
+            if(!container) return;
+            
+            let content = '';
+            resumeData.experience.forEach(exp => {
+                content += `
+                    <div class="mb-10 timeline-item relative">
+                        <h4 class="text-xl font-bold text-stone-800">${exp.role}</h4>
+                        <p class="text-lg font-medium text-[#587e76]">${exp.company}</p>
+                        <p class="text-sm text-stone-500 mb-3">${exp.date} &bull; ${exp.location}</p>
+                        <ul class="list-disc list-inside space-y-2 text-stone-700">
+                            ${exp.points.map(p => `<li>${p}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            });
+            container.innerHTML = content;
+        }
+
+        function renderSkills() {
+            const container = document.getElementById('skills-container');
+            if(!container) return;
+
+            let content = '';
+            for(const category in resumeData.skills) {
+                content += `
+                    <div>
+                        <h3 class="text-2xl font-bold mb-4 border-b-2 border-[#a3bfb8] pb-2">${category}</h3>
+                        <div class="flex flex-wrap gap-3">
+                            ${resumeData.skills[category].map(skill => `<span class="bg-[#d4cdc3] text-stone-800 px-4 py-2 rounded-full font-medium">${skill}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = content;
+        }
+
+        function renderProjects() {
+            const projectsContainer = document.getElementById('projects-container');
+            const educationContainer = document.getElementById('education-container');
+            const certsContainer = document.querySelector('#certifications-container div');
+
+            if(projectsContainer) {
+                 resumeData.projects.forEach(proj => {
+                    projectsContainer.innerHTML += `
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
+                            <h4 class="text-xl font-bold mb-2">${proj.name}</h4>
+                            <p class="text-stone-700 mb-4">${proj.description}</p>
+                            <div class="flex flex-wrap gap-2">
+                                ${proj.tags.map(tag => `<span class="text-xs bg-stone-200 text-stone-700 px-2 py-1 rounded-md font-semibold">${tag}</span>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            if(educationContainer) {
+                const edu = resumeData.education;
+                educationContainer.innerHTML += `
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
+                        <h4 class="text-xl font-bold">${edu.degree}</h4>
+                        <p class="text-lg font-medium text-[#587e76]">${edu.institution}</p>
+                        <p class="text-sm text-stone-500">${edu.date} &bull; ${edu.location}</p>
+                        <p class="mt-2 font-bold">CGPA: ${edu.gpa}</p>
+                    </div>
+                `;
+            }
+
+            if(certsContainer) {
+                resumeData.certifications.forEach(cert => {
+                    certsContainer.innerHTML += `
+                        <a href="${cert.url}" target="_blank" rel="noopener noreferrer" class="bg-[#a3bfb8] hover:bg-[#8da8a0] text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                            ${cert.name}
+                        </a>
+                    `;
+                });
+            }
+        }
+
+        function renderCharts() {
+            const defaultOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                         beginAtZero: true
+                    }
+                }
+            };
+            
+            const etlCtx = document.getElementById('etlChart')?.getContext('2d');
+            if (etlCtx) new Chart(etlCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Before', 'After'],
+                    datasets: [{
+                        label: 'Processing Time (minutes)',
+                        data: [240, 20],
+                        backgroundColor: ['#e4c3a5', '#a3bfb8'],
+                    }]
+                },
+                options: { ...defaultOptions, scales: { ...defaultOptions.scales, y: { ...defaultOptions.scales.y, title: { display: true, text: 'Time (minutes)'}}}}
+            });
+
+            const apiCtx = document.getElementById('apiChart')?.getContext('2d');
+            if (apiCtx) new Chart(apiCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Before', 'After'],
+                    datasets: [{
+                        label: 'Response Time (seconds)',
+                        data: [8, 3],
+                         backgroundColor: ['#e4c3a5', '#a3bfb8'],
+                    }]
+                },
+                options: { ...defaultOptions, scales: { ...defaultOptions.scales, y: { ...defaultOptions.scales.y, title: { display: true, text: 'Time (seconds)'}}}}
+            });
+            
+            const dataReconCtx = document.getElementById('dataReconChart')?.getContext('2d');
+            if (dataReconCtx) new Chart(dataReconCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Before (Manual)', 'After (Automated)'],
+                    datasets: [{
+                        label: 'Processing Time (minutes)',
+                        data: [1440, 10], // 1 day = 1440 minutes
+                         backgroundColor: ['#e4c3a5', '#a3bfb8'],
+                    }]
+                },
+                options: { ...defaultOptions, scales: { ...defaultOptions.scales, y: { ...defaultOptions.scales.y, type: 'logarithmic', title: { display: true, text: 'Time (minutes, log scale)'}}}}
+            });
+
+            const uiLoadCtx = document.getElementById('uiLoadChart')?.getContext('2d');
+            if (uiLoadCtx) new Chart(uiLoadCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Before', 'After'],
+                    datasets: [{
+                        label: 'Load Time (ms)',
+                        data: [8000, 700],
+                        backgroundColor: ['#e4c3a5', '#a3bfb8'],
+                    }]
+                },
+                options: { ...defaultOptions, scales: { ...defaultOptions.scales, y: { ...defaultOptions.scales.y, title: { display: true, text: 'Time (ms)'}}}}
+            });
+        }
+    </script>
+
+</body>
+</html>
